@@ -1,0 +1,53 @@
+version: "3.9"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: neo
+      POSTGRES_PASSWORD: neo
+      POSTGRES_DB: neo_polymarket
+    ports:
+      - "5432:5432"
+    volumes:
+      - neo_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U neo"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  api:
+    build: .
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+asyncpg://neo:neo@postgres:5432/neo_polymarket
+      REDIS_URL: redis://redis:6379/0
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+
+  dashboard:
+    build: .
+    env_file: .env
+    environment:
+      NEO_API_BASE: http://api:8000
+    depends_on:
+      - api
+    ports:
+      - "8501:8501"
+    command: ["streamlit", "run", "dashboard/app.py", "--server.address=0.0.0.0", "--server.port=8501"]
+
+volumes:
+  neo_pgdata:
