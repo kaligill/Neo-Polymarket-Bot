@@ -142,13 +142,35 @@ async def manage_open_positions(latest_markets: dict):
 
 
 async def trading_loop():
-    await init_db()
+    try:
+        await asyncio.wait_for(init_db(), timeout=10.0)
+    except asyncio.TimeoutError:
+        log.warning("database_init_timeout")
+    except Exception as e:
+        log.warning("database_init_error", error=str(e))
+    
     log.info("trading_loop_starting", paper_trading=settings.PAPER_TRADING)
 
     while not _shutdown.is_set():
         try:
-            news_cache = await news_fetcher.fetch_rss_all()
-            markets = await market_fetcher.fetch_active_markets()
+            try:
+                news_cache = await asyncio.wait_for(news_fetcher.fetch_rss_all(), timeout=30.0)
+            except asyncio.TimeoutError:
+                log.warning("news_fetch_timeout")
+                news_cache = []
+            except Exception as e:
+                log.warning("news_fetch_error", error=str(e))
+                news_cache = []
+            
+            try:
+                markets = await asyncio.wait_for(market_fetcher.fetch_active_markets(), timeout=30.0)
+            except asyncio.TimeoutError:
+                log.warning("markets_fetch_timeout")
+                markets = []
+            except Exception as e:
+                log.warning("markets_fetch_error", error=str(e))
+                markets = []
+            
             log.info("scan_cycle", markets_found=len(markets), news_items=len(news_cache))
 
             # Process markets concurrently but bounded, to avoid hammering the LLM/API rate limits.

@@ -14,6 +14,9 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_asyn
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from config import settings
+from logger import get_logger
+
+log = get_logger(__name__)
 
 
 class Base(DeclarativeBase):
@@ -78,8 +81,13 @@ _session_factory = async_sessionmaker(_engine, expire_on_commit=False, class_=As
 
 
 async def init_db():
-    async with _engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Initialize database, with graceful fallback if database is unavailable."""
+    try:
+        async with _engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+        log.info("database_initialized")
+    except Exception as e:
+        log.warning("database_init_failed", error=str(e), note="Running in memory-only mode")
 
 
 def get_session() -> AsyncSession:
