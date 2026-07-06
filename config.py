@@ -33,11 +33,14 @@ class Settings(BaseSettings):
     REDIS_URL: str = "redis://localhost:6379/0"
 
     # ---- LLM providers ----
-    LLM_PROVIDER: str = "anthropic"  # "anthropic" | "openai"
+    LLM_PROVIDER: str = "anthropic"  # "anthropic" | "openai" | "openrouter"
+    LLM_MODEL: str = "deepseek/deepseek-chat-v3.1"  # used for openrouter
     ANTHROPIC_API_KEY: str = ""
     ANTHROPIC_MODEL: str = "claude-sonnet-4-6"
     OPENAI_API_KEY: str = ""
     OPENAI_MODEL: str = "gpt-4o"
+    OPENROUTER_API_KEY: str = ""
+    OPENROUTER_BASE_URL: str = "https://openrouter.ai/api/v1"
 
     # ---- News / Social sources ----
     NEWSAPI_KEY: str = ""

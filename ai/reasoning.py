@@ -34,6 +34,14 @@ class LLMClient:
             if not settings.OPENAI_API_KEY:
                 log.warning("openai_key_missing")
             self._openai = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
+        elif self.provider == "openrouter":
+            import openai
+            if not settings.OPENROUTER_API_KEY:
+                log.warning("openrouter_key_missing")
+            self._openai = openai.AsyncOpenAI(
+                api_key=settings.OPENROUTER_API_KEY,
+                base_url=settings.OPENROUTER_BASE_URL
+            )
         else:
             raise ValueError(f"Unknown LLM_PROVIDER: {self.provider}")
 
@@ -47,8 +55,9 @@ class LLMClient:
             )
             return "".join(block.text for block in resp.content if block.type == "text")
         else:
+            model = settings.LLM_MODEL if self.provider == "openrouter" else settings.OPENAI_MODEL
             resp = await self._openai.chat.completions.create(
-                model=settings.OPENAI_MODEL,
+                model=model,
                 max_tokens=max_tokens,
                 messages=([{"role": "system", "content": system}] if system else [])
                 + [{"role": "user", "content": prompt}],
